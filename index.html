@@ -363,6 +363,11 @@
     </div>
 
     <script>
+        // CONFIGURAÇÃO DE CONEXÃO
+        // IMPORTANTE: Quando você subir o python no Render, ele vai te dar uma URL (ex: https://jarvis-backend.onrender.com)
+        // Cole essa URL dentro das aspas abaixo.
+        const API_URL = "https://SUA-URL-DO-RENDER-AQUI.onrender.com"; 
+
         // Elementos do DOM
         const chatDisplay = document.getElementById('chat-display');
         const userInput = document.getElementById('user-input');
@@ -379,7 +384,11 @@
             nameSpan.innerText = sender === 'user' ? 'MESTRE ALISSON' : 'JARVIS';
             
             msgDiv.appendChild(nameSpan);
-            msgDiv.appendChild(document.createTextNode(text));
+            
+            // Tratamento para quebras de linha vindas da IA
+            const textContent = document.createElement('div');
+            textContent.innerText = text;
+            msgDiv.appendChild(textContent);
             
             chatDisplay.appendChild(msgDiv);
             chatDisplay.scrollTop = chatDisplay.scrollHeight; // Auto-scroll
@@ -392,48 +401,79 @@
             systemLog.prepend(p);
         }
 
-        // Enviar mensagem
-        function sendMessage() {
+        // --- FUNÇÃO DE COMUNICAÇÃO (O CÉREBRO REAL) ---
+        async function communicateWithBrain(message) {
+            try {
+                // Prepara o pacote de dados
+                const payload = {
+                    message: message,
+                    user: "Mestre Alisson" // Identificador futuro
+                };
+
+                // Envia para o servidor Python
+                const response = await fetch(`${API_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('Falha na resposta do servidor');
+
+                const data = await response.json();
+                return data.response; // O texto que o Gemini gerou
+
+            } catch (error) {
+                console.error("Erro Jarvis:", error);
+                logSystem("ERRO: Falha na conexão neural.");
+                return "Perdão, Mestre. Não consegui contactar o servidor principal. Verifique se a URL da API está correta ou se o servidor no Render está ativo.";
+            }
+        }
+
+        // Enviar mensagem (Principal)
+        async function sendMessage() {
             const text = userInput.value.trim();
             if (!text) return;
 
-            // 1. Mostrar mensagem do usuário
+            // 1. Mostrar mensagem do usuário na tela imediatamente
             addMessage(text, 'user');
             userInput.value = '';
+            userInput.disabled = true; // Trava input para evitar flood
 
-            // 2. Simular "Pensando"
-            logSystem(`Processando input: "${text.substring(0, 15)}..."`);
+            // 2. Feedback visual de "Pensando"
+            logSystem(`Enviando dados: "${text.substring(0, 15)}..."`);
+            const loadingMsgId = 'loading-' + Date.now();
             
-            // 3. Resposta Simulada (Lógica de Frontend Mock)
-            setTimeout(() => {
-                const response = mockJarvisBrain(text);
-                addMessage(response, 'jarvis');
-                logSystem('Resposta enviada.');
-            }, 800);
+            // Cria um balão temporário de "Digitando..."
+            const loadingDiv = document.createElement('div');
+            loadingDiv.classList.add('message', 'jarvis');
+            loadingDiv.id = loadingMsgId;
+            loadingDiv.innerHTML = '<span class="sender-name">JARVIS</span><span class="blink">Processando...</span>';
+            chatDisplay.appendChild(loadingDiv);
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+
+            // 3. Comunicação Real
+            const aiResponse = await communicateWithBrain(text);
+
+            // 4. Remove o balão de loading e mostra a resposta real
+            const loadingElement = document.getElementById(loadingMsgId);
+            if (loadingElement) loadingElement.remove();
+            
+            addMessage(aiResponse, 'jarvis');
+            logSystem('Dados recebidos com sucesso.');
+            
+            userInput.disabled = false;
+            userInput.focus();
         }
 
-        // Lógica Falsa (Mock) para testar interface sem Backend
-        function mockJarvisBrain(input) {
-            const lower = input.toLowerCase();
-            
-            if (lower.includes('olá') || lower.includes('oi')) return "Saudações, Mestre. Como posso ajudar no projeto hoje?";
-            if (lower.includes('status')) return "Bateria em 98%. Temperatura da CPU em 45°C. Rede estável.";
-            if (lower.includes('hora')) {
-                const now = new Date();
-                return `Agora são exatamente ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}.`;
-            }
-            if (lower.includes('abrir spotify')) return "Comando recebido. Iniciando Spotify (Simulação).";
-            
-            return "Comando registrado. O módulo de IA (Gemini) ainda não está conectado nesta versão HTML.";
-        }
-
-        // Simulação de Microfone
+        // Simulação de Microfone (Ainda visual por enquanto)
         let isListening = false;
         function toggleMic() {
             isListening = !isListening;
             if (isListening) {
                 micBtn.classList.add('listening');
-                logSystem('Microfone ativado. Escutando...');
+                logSystem('Microfone ativado. (Funcionalidade de STT pendente)');
             } else {
                 micBtn.classList.remove('listening');
                 logSystem('Microfone desativado.');
@@ -442,10 +482,18 @@
 
         // Enviar com Enter
         userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
+            if (e.key === 'Enter' && !userInput.disabled) sendMessage();
         });
 
-        // Efeito de Status Aleatório
+        // CSS Extra para o efeito de "Processando..."
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .blink { animation: blinker 1s linear infinite; }
+            @keyframes blinker { 50% { opacity: 0; } }
+        `;
+        document.head.appendChild(style);
+
+        // Efeito de Status Aleatório (Cosmético)
         setInterval(() => {
             document.getElementById('cpu-stat').innerText = Math.floor(Math.random() * (40 - 10) + 10) + '%';
             document.getElementById('ram-stat').innerText = Math.floor(Math.random() * (16 - 8) + 8) + 'GB';
