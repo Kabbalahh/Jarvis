@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JARVIS X v1.1 | Mestre Alisson</title>
+    <title>JARVIS X | Mestre Alisson</title>
     
     <!-- Fonte Tecnológica -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,7 +15,7 @@
 
     <style>
         :root {
-            --primary-color: #00f3ff; /* Ciano Jarvis */
+            --primary-color: #00f3ff;
             --secondary-color: #004e54;
             --bg-color: #050505;
             --alert-color: #ff3333;
@@ -24,11 +24,7 @@
             --text-glow: 0 0 5px rgba(0, 243, 255, 0.7);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             background-color: var(--bg-color);
@@ -40,22 +36,18 @@
             flex-direction: column;
         }
 
-        /* Efeito de Scanlines (TV Antiga/Holograma) */
+        /* Efeito de Scanlines */
         body::before {
             content: " ";
             display: block;
             position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
+            top: 0; left: 0; bottom: 0; right: 0;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
             z-index: 2;
             background-size: 100% 2px, 3px 100%;
             pointer-events: none;
         }
 
-        /* Container Principal */
         .hud-container {
             display: flex;
             flex: 1;
@@ -64,7 +56,6 @@
             z-index: 1;
         }
 
-        /* Header / Top Bar */
         header {
             display: flex;
             justify-content: space-between;
@@ -85,19 +76,6 @@
             gap: 10px;
         }
 
-        .status-bar {
-            display: flex;
-            gap: 20px;
-            font-size: 0.9rem;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        /* Painel Central (Chat) */
         .main-panel {
             flex: 1;
             display: flex;
@@ -118,19 +96,10 @@
             gap: 15px;
         }
 
-        /* Custom Scrollbar */
-        .chat-display::-webkit-scrollbar {
-            width: 8px;
-        }
-        .chat-display::-webkit-scrollbar-track {
-            background: #001111;
-        }
-        .chat-display::-webkit-scrollbar-thumb {
-            background: var(--secondary-color);
-            border-radius: 4px;
-        }
+        .chat-display::-webkit-scrollbar { width: 8px; }
+        .chat-display::-webkit-scrollbar-track { background: #001111; }
+        .chat-display::-webkit-scrollbar-thumb { background: var(--secondary-color); border-radius: 4px; }
 
-        /* Balões de Mensagem */
         .message {
             max-width: 80%;
             padding: 12px 18px;
@@ -138,6 +107,7 @@
             position: relative;
             animation: fadeIn 0.3s ease;
             line-height: 1.5;
+            word-wrap: break-word;
         }
 
         @keyframes fadeIn {
@@ -169,7 +139,6 @@
             letter-spacing: 1px;
         }
 
-        /* Área de Input */
         .input-area {
             background: rgba(0, 20, 20, 0.9);
             border: 1px solid var(--secondary-color);
@@ -210,26 +179,16 @@
             box-shadow: 0 0 15px var(--primary-color);
         }
 
-        button.mic-btn.listening {
-            background: var(--alert-color);
-            border-color: var(--alert-color);
-            color: white;
-            animation: pulse 1.5s infinite;
-        }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
 
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0); }
-        }
-
-        /* Sidebar Direita (Desktop) */
+        /* Sidebar Direita */
         aside {
             width: 280px;
             background: rgba(0, 10, 10, 0.5);
             border-left: 1px solid var(--secondary-color);
             padding: 20px;
-            display: none; /* Mobile first hidden */
+            display: none;
             flex-direction: column;
             gap: 20px;
         }
@@ -255,249 +214,151 @@
             height: 150px;
             overflow: hidden;
             display: flex;
-            flex-direction: column-reverse; /* Logs novos embaixo */
+            flex-direction: column-reverse;
         }
 
-        /* Arc Reactor Animation */
         .arc-reactor {
-            width: 30px;
-            height: 30px;
-            border: 2px solid var(--primary-color);
-            border-radius: 50%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 30px; height: 30px;
+            border: 2px solid var(--primary-color); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
             box-shadow: 0 0 10px var(--primary-color);
         }
-
         .arc-inner {
-            width: 15px;
-            height: 15px;
-            background: var(--primary-color);
-            border-radius: 50%;
-            animation: breathe 3s infinite ease-in-out;
+            width: 15px; height: 15px; background: var(--primary-color);
+            border-radius: 50%; animation: breathe 3s infinite ease-in-out;
         }
-
         @keyframes breathe {
             0%, 100% { opacity: 0.3; transform: scale(0.8); }
             50% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 20px var(--primary-color); }
         }
 
-        /* Responsividade */
-        @media (min-width: 768px) {
-            aside {
-                display: flex;
-            }
-        }
+        @media (min-width: 768px) { aside { display: flex; } }
     </style>
 </head>
 <body>
 
     <header>
         <div class="brand">
-            <div class="arc-reactor">
-                <div class="arc-inner"></div>
-            </div>
-            <span>JARVIS X <small style="font-size: 0.6rem; opacity: 0.7;">v1.1</small></span>
+            <div class="arc-reactor"><div class="arc-inner"></div></div>
+            <span>JARVIS X <small style="font-size: 0.6rem; opacity: 0.7;">v1.2 ONLINE</small></span>
         </div>
-        <div class="status-bar">
-            <div class="status-item hidden-mobile">
-                <i class="ph ph-cpu"></i> <span id="cpu-stat">34%</span>
-            </div>
-            <div class="status-item hidden-mobile">
-                <i class="ph ph-memory"></i> <span id="ram-stat">12GB</span>
-            </div>
-            <div class="status-item">
-                <i class="ph ph-wifi-high"></i> ONLINE
-            </div>
+        <div style="font-size: 0.8rem; display: flex; gap: 15px;">
+            <div>CPU: <span id="cpu-stat">34%</span></div>
+            <div>MEM: <span id="ram-stat">12GB</span></div>
         </div>
     </header>
 
     <div class="hud-container">
-        
-        <!-- Área Principal de Chat -->
         <main class="main-panel">
             <div class="chat-display" id="chat-display">
-                <!-- Mensagens Iniciais -->
                 <div class="message jarvis">
                     <span class="sender-name">SISTEMA</span>
-                    Olá, Mestre Alisson. Interface v1.1 inicializada. Todos os sistemas operando nominalmente.
+                    Conexão Neural Estabelecida. Servidor Cloud detectado. Aguardando ordens, Mestre Alisson.
                 </div>
             </div>
 
             <div class="input-area">
-                <button id="mic-btn" class="mic-btn" onclick="toggleMic()">
-                    <i class="ph ph-microphone"></i>
-                </button>
-                <input type="text" id="user-input" placeholder="Digite um comando..." autocomplete="off">
-                <button onclick="sendMessage()">
-                    <i class="ph ph-paper-plane-right"></i>
-                </button>
+                <button id="mic-btn"><i class="ph ph-microphone"></i></button>
+                <input type="text" id="user-input" placeholder="Comando..." autocomplete="off">
+                <button onclick="sendMessage()"><i class="ph ph-paper-plane-right"></i></button>
             </div>
         </main>
 
-        <!-- Sidebar de Informações -->
         <aside>
             <div class="panel-box">
-                <div class="panel-title">Módulos Ativos</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem;">
-                    <div style="display: flex; align-items: center; gap: 5px;"><i class="ph ph-spotify-logo"></i> Spotify</div>
-                    <div style="display: flex; align-items: center; gap: 5px;"><i class="ph ph-google-chrome-logo"></i> Busca</div>
-                    <div style="display: flex; align-items: center; gap: 5px;"><i class="ph ph-folder-notch"></i> Drive</div>
-                    <div style="display: flex; align-items: center; gap: 5px;"><i class="ph ph-whatsapp-logo"></i> Social</div>
+                <div class="panel-title">Módulos Cloud</div>
+                <div style="font-size: 0.8rem; display: grid; gap: 5px;">
+                    <div><i class="ph ph-brain"></i> Gemini: <span style="color:#0f0">ATIVO</span></div>
+                    <div><i class="ph ph-server"></i> Render: <span style="color:#0f0">ONLINE</span></div>
                 </div>
             </div>
-
             <div class="panel-box" style="flex: 1;">
-                <div class="panel-title">Log do Sistema</div>
+                <div class="panel-title">Log de Processamento</div>
                 <div class="log-content" id="system-log">
-                    <p>> Interface renderizada.</p>
-                    <p>> Protocolo de segurança ativo.</p>
-                    <p>> Conectando ao núcleo...</p>
-                    <p>> Aguardando input do usuário.</p>
+                    <p>> Sistema iniciado.</p>
                 </div>
             </div>
         </aside>
-
     </div>
 
     <script>
-        // CONFIGURAÇÃO DE CONEXÃO
-        // IMPORTANTE: Quando você subir o python no Render, ele vai te dar uma URL (ex: https://jarvis-backend.onrender.com)
-        // Cole essa URL dentro das aspas abaixo.
+        // --- CONFIGURAÇÃO DA NUVEM ---
+        // Peguei sua URL do print do Render
         const API_URL = "https://jarvis-ku8a.onrender.com"; 
 
-        // Elementos do DOM
         const chatDisplay = document.getElementById('chat-display');
         const userInput = document.getElementById('user-input');
         const systemLog = document.getElementById('system-log');
-        const micBtn = document.getElementById('mic-btn');
 
-        // Adicionar mensagem ao chat
-        function addMessage(text, sender) {
-            const msgDiv = document.createElement('div');
-            msgDiv.classList.add('message', sender);
-            
-            const nameSpan = document.createElement('span');
-            nameSpan.classList.add('sender-name');
-            nameSpan.innerText = sender === 'user' ? 'MESTRE ALISSON' : 'JARVIS';
-            
-            msgDiv.appendChild(nameSpan);
-            
-            // Tratamento para quebras de linha vindas da IA
-            const textContent = document.createElement('div');
-            textContent.innerText = text;
-            msgDiv.appendChild(textContent);
-            
-            chatDisplay.appendChild(msgDiv);
-            chatDisplay.scrollTop = chatDisplay.scrollHeight; // Auto-scroll
-        }
-
-        // Adicionar Log
         function logSystem(text) {
             const p = document.createElement('p');
             p.innerText = `> ${text}`;
             systemLog.prepend(p);
         }
 
-        // --- FUNÇÃO DE COMUNICAÇÃO (O CÉREBRO REAL) ---
+        function addMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', sender);
+            msgDiv.innerHTML = `<span class="sender-name">${sender === 'user' ? 'MESTRE ALISSON' : 'JARVIS'}</span>${text}`;
+            chatDisplay.appendChild(msgDiv);
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        }
+
         async function communicateWithBrain(message) {
             try {
-                // Prepara o pacote de dados
-                const payload = {
-                    message: message,
-                    user: "Mestre Alisson" // Identificador futuro
-                };
-
-                // Envia para o servidor Python
                 const response = await fetch(`${API_URL}/api/chat`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
                 });
 
-                if (!response.ok) throw new Error('Falha na resposta do servidor');
-
+                if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
                 const data = await response.json();
-                return data.response; // O texto que o Gemini gerou
+                return data.response; 
 
             } catch (error) {
-                console.error("Erro Jarvis:", error);
-                logSystem("ERRO: Falha na conexão neural.");
-                return "Perdão, Mestre. Não consegui contactar o servidor principal. Verifique se a URL da API está correta ou se o servidor no Render está ativo.";
+                console.error("Erro:", error);
+                logSystem("ERRO DE CONEXÃO: " + error.message);
+                return "Mestre, não consegui contatar o servidor na nuvem. Verifique se o Render terminou o deploy ou se está 'acordando' (pode levar 50s no free tier).";
             }
         }
 
-        // Enviar mensagem (Principal)
         async function sendMessage() {
             const text = userInput.value.trim();
             if (!text) return;
 
-            // 1. Mostrar mensagem do usuário na tela imediatamente
             addMessage(text, 'user');
             userInput.value = '';
-            userInput.disabled = true; // Trava input para evitar flood
+            userInput.disabled = true;
 
-            // 2. Feedback visual de "Pensando"
-            logSystem(`Enviando dados: "${text.substring(0, 15)}..."`);
-            const loadingMsgId = 'loading-' + Date.now();
-            
-            // Cria um balão temporário de "Digitando..."
+            // Feedback de carregamento
+            logSystem("Enviando pacote para a Nuvem...");
+            const loadingId = 'loading-' + Date.now();
             const loadingDiv = document.createElement('div');
             loadingDiv.classList.add('message', 'jarvis');
-            loadingDiv.id = loadingMsgId;
-            loadingDiv.innerHTML = '<span class="sender-name">JARVIS</span><span class="blink">Processando...</span>';
+            loadingDiv.id = loadingId;
+            loadingDiv.innerHTML = '<span class="sender-name">JARVIS</span><span class="blink">Processando resposta no Gemini...</span>';
             chatDisplay.appendChild(loadingDiv);
             chatDisplay.scrollTop = chatDisplay.scrollHeight;
 
-            // 3. Comunicação Real
-            const aiResponse = await communicateWithBrain(text);
+            // Chama a API Real
+            const responseText = await communicateWithBrain(text);
 
-            // 4. Remove o balão de loading e mostra a resposta real
-            const loadingElement = document.getElementById(loadingMsgId);
-            if (loadingElement) loadingElement.remove();
-            
-            addMessage(aiResponse, 'jarvis');
-            logSystem('Dados recebidos com sucesso.');
+            // Remove loading e mostra resposta
+            document.getElementById(loadingId).remove();
+            addMessage(responseText, 'jarvis');
+            logSystem("Resposta recebida.");
             
             userInput.disabled = false;
             userInput.focus();
         }
 
-        // Simulação de Microfone (Ainda visual por enquanto)
-        let isListening = false;
-        function toggleMic() {
-            isListening = !isListening;
-            if (isListening) {
-                micBtn.classList.add('listening');
-                logSystem('Microfone ativado. (Funcionalidade de STT pendente)');
-            } else {
-                micBtn.classList.remove('listening');
-                logSystem('Microfone desativado.');
-            }
-        }
-
-        // Enviar com Enter
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !userInput.disabled) sendMessage();
         });
 
-        // CSS Extra para o efeito de "Processando..."
-        const style = document.createElement('style');
-        style.innerHTML = `
-            .blink { animation: blinker 1s linear infinite; }
-            @keyframes blinker { 50% { opacity: 0; } }
-        `;
-        document.head.appendChild(style);
-
-        // Efeito de Status Aleatório (Cosmético)
-        setInterval(() => {
-            document.getElementById('cpu-stat').innerText = Math.floor(Math.random() * (40 - 10) + 10) + '%';
-            document.getElementById('ram-stat').innerText = Math.floor(Math.random() * (16 - 8) + 8) + 'GB';
-        }, 3000);
+        // Ping inicial para acordar o servidor (opcional)
+        fetch(`${API_URL}/`).then(() => logSystem("Servidor Cloud respondeu ao Ping.")).catch(() => logSystem("Tentando conectar ao servidor..."));
 
     </script>
 </body>
