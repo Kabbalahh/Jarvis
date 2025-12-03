@@ -15,33 +15,19 @@ if not api_key:
     print("ERRO: API Key não encontrada.")
 else:
     genai.configure(api_key=api_key)
-    
-    # --- AUTO-DIAGNÓSTICO AO INICIAR ---
-    print("--- INICIANDO DIAGNÓSTICO DE MODELOS ---")
-    try:
-        print(f"Chave configurada (primeiros 5 carac): {api_key[:5]}...")
-        print("Listando modelos disponíveis para esta chave:")
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                print(f" - Encontrado: {m.name}")
-    except Exception as e:
-        print(f"ERRO CRÍTICO NO DIAGNÓSTICO: {e}")
-    print("----------------------------------------")
 
-# Função para criar o modelo com fallback
+# Função para criar o modelo com a versão correta encontrada no log
 def get_model():
-    # Tenta configurações diferentes para garantir funcionamento
     config = {
         "temperature": 0.7,
         "max_output_tokens": 2048,
     }
     
-    # Tenta usar o modelo Flash (mais rápido), se falhar, o código avisará
-    # Usando o nome técnico 'gemini-1.5-flash-latest' que é mais robusto
+    # ATUALIZAÇÃO: Usando a versão 2.5 Flash que apareceu explicitamente no seu log
     return genai.GenerativeModel(
-        model_name="gemini-1.5-flash-latest", 
+        model_name="gemini-2.5-flash", 
         generation_config=config,
-        system_instruction="Você é o JARVIS X, assistente do Mestre Alisson. Responda de forma concisa e tecnológica."
+        system_instruction="Você é o JARVIS X, assistente do Mestre Alisson. Responda de forma concisa, tecnológica e direta."
     )
 
 model = get_model()
@@ -49,7 +35,7 @@ model = get_model()
 # --- ROTAS ---
 @app.route('/', methods=['GET'])
 def health_check():
-    return jsonify({"status": "online", "version": "v1.3 Diagnostic"})
+    return jsonify({"status": "online", "version": "v1.4 Stable"})
 
 @app.route('/api/chat', methods=['POST'])
 def chat_endpoint():
@@ -69,14 +55,8 @@ def chat_endpoint():
         })
 
     except Exception as e:
-        # Se der erro 404 aqui, veremos no log qual modelo ele tentou
         error_msg = str(e)
         print(f"ERRO GERAÇÃO: {error_msg}")
-        
-        # Tenta fallback para um modelo mais antigo se o Flash falhar
-        if "404" in error_msg:
-            return jsonify({"response": "Mestre, o modelo Flash não foi encontrado. Verifique os logs do Render para ver a lista de modelos disponíveis (gemini-pro, etc).", "error_code": "MODEL_404"})
-            
         return jsonify({"error": "Falha no processamento", "details": error_msg}), 500
 
 if __name__ == '__main__':
