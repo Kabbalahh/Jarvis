@@ -6,9 +6,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
 
-# --- 1. CONFIGURAÇÃO ---
+# --- 1. CONFIGURAÇÃO INICIAL ---
 load_dotenv()
 api_key_google = os.getenv("GOOGLE_API_KEY")
 api_key_deepseek = os.getenv("DEEPSEEK_API_KEY")
@@ -16,27 +16,28 @@ api_key_deepseek = os.getenv("DEEPSEEK_API_KEY")
 app = Flask(__name__)
 CORS(app)
 
-# Configuração Gemini
+# Configuração da IA
 if api_key_google:
     genai.configure(api_key=api_key_google)
 
-# --- 2. MEMÓRIA DRIVE (Service Account) ---
+# --- 2. SISTEMA DE MEMÓRIA (DRIVE COM TOKEN.JSON) ---
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 def get_drive_service():
-    # Tenta achar o arquivo secreto em locais padrão do Render ou Raiz
-    possible_paths = ["/etc/secrets/service_account.json", "service_account.json"]
-    creds_path = next((p for p in possible_paths if os.path.exists(p)), None)
+    # Procura o token injetado pelo Render
+    token_paths = ["/etc/secrets/token.json", "token.json"]
+    token_path = next((p for p in token_paths if os.path.exists(p)), None)
 
-    if not creds_path:
-        print("ALERTA MEMÓRIA: service_account.json não encontrado.")
+    if not token_path:
+        print("ALERTA: Arquivo token.json não encontrado nos Secret Files.")
         return None
 
     try:
-        creds = service_account.Credentials.from_service_account_file(creds_path, scopes=SCOPES)
+        # Carrega a credencial do Mestre Alisson
+        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
         return build('drive', 'v3', credentials=creds)
     except Exception as e:
-        print(f"Erro na credencial: {e}")
+        print(f"Erro ao ler token.json: {e}")
         return None
 
 def save_to_drive_log(user_msg, ai_response):
@@ -47,18 +48,25 @@ def save_to_drive_log(user_msg, ai_response):
     log_content = f"[{timestamp}]\nUSER: {user_msg}\nJARVIS: {ai_response}\n{'-'*40}\n"
 
     try:
-        # Busca pasta JARVIS_MEMORY
-        query = "name = 'JARVIS_MEMORY' and mimeType = 'application/vnd.google-apps.folder'"
+        # 1. Verifica se a pasta JARVIS_MEMORY existe
+        query = "name = 'JARVIS_MEMORY' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
         results = service.files().list(q=query, spaces='drive').execute()
         items = results.get('files', [])
         
-        if not items:
-            print("Erro: Pasta JARVIS_MEMORY não encontrada (Verifique compartilhamento com email do robô).")
-            return
-            
-        folder_id = items[0]['id']
-        
-        # Salva Arquivo
+        folder_id = None
+        if items:
+            folder_id = items[0]['id']
+        else:
+            # Se não existir, cria (Agora temos permissão!)
+            file_metadata = {
+                'name': 'JARVIS_MEMORY',
+                'mimeType': 'application/vnd.google-apps.folder'
+            }
+            folder = service.files().create(body=file_metadata, fields='id').execute()
+            folder_id = folder.get('id')
+            print("Pasta JARVIS_MEMORY criada automaticamente.")
+
+        # 2. Salva o Log
         from googleapiclient.http import MediaIoBaseUpload
         import io
         
@@ -70,41 +78,36 @@ def save_to_drive_log(user_msg, ai_response):
             media_body=media,
             fields='id'
         ).execute()
-        print(f"MEMÓRIA SALVA: {filename}")
-        
-    except Exception as e:
-        print(f"FALHA GRAVAÇÃO DRIVE: {e}")
-        # Importante: Não paramos o código, apenas logamos o erro.
+        print(f"MEMÓRIA SALVA COM SUCESSO: {filename}")
 
-# --- 3. INTELIGÊNCIA (Modelo Ajustado) ---
+    except Exception as e:
+        print(f"FALHA NA GRAVAÇÃO DO DRIVE: {e}")
+
+# --- 3. SISTEMA COGNITIVO (IA) ---
 
 def get_gemini_response(prompt):
-    # LISTA ATUALIZADA COM BASE NO SEU LOG (04/Dez/2025)
-    # Prioridade: Flash Latest (Rápido e Confirmado) -> Pro Latest -> Fallbacks
-    priority_models = [
-        "models/gemini-flash-latest", 
-        "models/gemini-pro-latest",
-        "models/gemini-1.5-flash",
+    # Lista de prioridade baseada nos seus logs
+    # O 'gemini-flash-latest' apareceu como disponível no seu teste anterior
+    models_to_try = [
+        "models/gemini-1.5-flash", 
+        "models/gemini-flash-latest",
         "gemini-1.5-flash"
     ]
     
     last_error = ""
-    
-    for model_name in priority_models:
+    for model_name in models_to_try:
         try:
-            print(f"Tentando modelo: {model_name}...")
             model = genai.GenerativeModel(model_name)
             response = model.generate_content(prompt)
             return response.text
         except Exception as e:
-            print(f"Falha no {model_name}. Tentando próximo...")
+            print(f"Tentativa com {model_name} falhou. Tentando próximo...")
             last_error = str(e)
             continue
             
-    return f"Erro Cognitivo Total. Detalhes: {last_error}"
+    return f"Erro Crítico de IA: Não foi possível conectar a nenhum modelo. Detalhes: {last_error}"
 
 def cognitive_router(msg):
-    # Lógica simples para decidir entre DeepSeek e Gemini
     if api_key_deepseek and any(x in msg.lower() for x in ['código', 'python', 'lógica']):
         return "deepseek"
     return "gemini"
@@ -112,7 +115,7 @@ def cognitive_router(msg):
 # --- 4. ROTAS ---
 @app.route('/', methods=['GET'])
 def health():
-    return jsonify({"status": "online", "version": "v2.3 Fixed"})
+    return jsonify({"status": "online", "memory": "Active", "auth": "User Token"})
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -125,26 +128,25 @@ def chat():
         brain = cognitive_router(user_msg)
         
         response_text = ""
-        source = ""
+        source_tag = ""
         
-        # Tentativa DeepSeek (Se configurado)
-        if brain == "deepseek":
-            # (Adicione sua lógica DeepSeek aqui se tiver a chave)
-            # Fallback para Gemini se não tiver implementação
-            brain = "gemini"
-
-        # Execução Gemini
+        # Roteamento
         if brain == "gemini":
             response_text = get_gemini_response(user_msg)
-            source = "[Gemini]"
+            source_tag = "[Gemini]"
+        else:
+            # Fallback para Gemini se DeepSeek não estiver configurado
+            response_text = get_gemini_response(user_msg)
+            source_tag = "[Gemini]"
 
-        # Salvar Memória (Em background, sem travar resposta)
+        # Salvar na Memória (Background)
         save_to_drive_log(user_msg, response_text)
 
-        return jsonify({"response": response_text, "model": source})
+        return jsonify({"response": response_text, "model": source_tag})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
